@@ -575,21 +575,25 @@ function update(dt) {
             continue;
         }
 
-        // Boundary proximity warning: auto-steer away from edges for player
+        // Boundary proximity: force turn away from edges
         if (!snake.isBot) {
-            const borderDist = 200;
-            const center = mapSize / 2;
+            const borderWarn = 300;
+            const borderHard = 100;
             let steerX = 0, steerY = 0;
-            if (newX < borderDist) steerX = 1;
-            else if (newX > mapSize - borderDist) steerX = -1;
-            if (newY < borderDist) steerY = 1;
-            else if (newY > mapSize - borderDist) steerY = -1;
+            if (newX < borderWarn) steerX = 1 - newX / borderWarn;
+            else if (newX > mapSize - borderWarn) steerX = -(1 - (mapSize - newX) / borderWarn);
+            if (newY < borderWarn) steerY = 1 - newY / borderWarn;
+            else if (newY > mapSize - borderWarn) steerY = -(1 - (mapSize - newY) / borderWarn);
             if (steerX !== 0 || steerY !== 0) {
                 const safeAngle = Math.atan2(steerY, steerX);
-                let diff = safeAngle - snake.targetAngle;
+                let diff = safeAngle - snake.angle;
                 while (diff > Math.PI) diff -= Math.PI * 2;
                 while (diff < -Math.PI) diff += Math.PI * 2;
-                snake.targetAngle += diff * 0.1;
+                // Strength increases as snake gets closer to edge
+                const urgency = Math.max(Math.abs(steerX), Math.abs(steerY));
+                const strength = urgency * 0.15;
+                snake.angle += diff * strength;
+                snake.targetAngle = snake.angle;
             }
         }
 
