@@ -410,7 +410,12 @@ function startGame() {
     // Create player
     const nick = document.getElementById('nickname').value.trim() || 'Игрок';
     localStorage.setItem('snakeio_nickname', nick);
-    player = createSnake(nick, selectedSkin, mapSize / 2 + (Math.random() - 0.5) * 400, mapSize / 2 + (Math.random() - 0.5) * 400, false, mapSize);
+    const spawnX = mapSize / 2 + (Math.random() - 0.5) * 200;
+    const spawnY = mapSize / 2 + (Math.random() - 0.5) * 200;
+    player = createSnake(nick, selectedSkin, spawnX, spawnY, false, mapSize);
+    // Set initial angle toward center
+    player.angle = Math.atan2(mapSize / 2 - spawnY, mapSize / 2 - spawnX);
+    player.targetAngle = player.angle;
     snakes.push(player);
 
     // Create bots
@@ -568,6 +573,24 @@ function update(dt) {
         if (newX < 0 || newX > mapSize || newY < 0 || newY > mapSize) {
             killSnake(snake, null, mapSize);
             continue;
+        }
+
+        // Boundary proximity warning: auto-steer away from edges for player
+        if (!snake.isBot) {
+            const borderDist = 200;
+            const center = mapSize / 2;
+            let steerX = 0, steerY = 0;
+            if (newX < borderDist) steerX = 1;
+            else if (newX > mapSize - borderDist) steerX = -1;
+            if (newY < borderDist) steerY = 1;
+            else if (newY > mapSize - borderDist) steerY = -1;
+            if (steerX !== 0 || steerY !== 0) {
+                const safeAngle = Math.atan2(steerY, steerX);
+                let diff = safeAngle - snake.targetAngle;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                snake.targetAngle += diff * 0.1;
+            }
         }
 
         // Move segments
